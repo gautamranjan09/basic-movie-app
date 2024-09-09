@@ -7,16 +7,15 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [retrying, setRetrying] = useState(false);
-  const [cancelRetry, setCancelRetry] = useState(false);
 
   const retryTimeoutId = useRef(null);
+  const cancelRetryRef = useRef(false); // Ref to track cancel state
 
   async function fetchMoviesHandler() {
     setIsLoading(true);
     setError(null);
     setRetrying(false);
-    setCancelRetry(false);
-    console.log("fetch1");
+    cancelRetryRef.current = false; // Resetting cancelRetry via ref
 
     try {
       const response = await fetch("https://swapi.dev/api/film/");
@@ -25,40 +24,33 @@ function App() {
       }
       const data = await response.json();
       console.log("fetch2");
-      const transformedMovies = data.results.map((movieData) => {
-        return {
-          id: movieData.episode_id,
-          title: movieData.title,
-          openingText: movieData.opening_crawl,
-          releaseDate: movieData.release_date,
-        };
-      });
+      const transformedMovies = data.results.map((movieData) => ({
+        id: movieData.episode_id,
+        title: movieData.title,
+        openingText: movieData.opening_crawl,
+        releaseDate: movieData.release_date,
+      }));
       setMovies(transformedMovies);
     } catch (error) {
       setError(error.message);
-      console.log("fetch3");
-      
       retryFetchMovies();
     }
     setIsLoading(false);
   }
-console.log("cancelretry "+cancelRetry,  "retrying "+ retrying);
 
   function retryFetchMovies() {
-    console.log("fetch 4");
-    console.log("cancelretry "+cancelRetry,  "retrying "+ retrying);
-    
-    if (cancelRetry) return; // Avoid scheduling retry if canceled
+    if (cancelRetryRef.current) return; // Avoid scheduling retry if canceled
+
     setRetrying(true);
-    retryTimeoutId.current = setTimeout(async () => {
-      if (!cancelRetry) {
-        await fetchMoviesHandler();
+    retryTimeoutId.current = setTimeout(() => {
+      if (!cancelRetryRef.current) {
+        fetchMoviesHandler(); // Retry fetching if not canceled
       }
     }, 5000);
   }
 
   function cancelRetryHandler() {
-    setCancelRetry(true);
+    cancelRetryRef.current = true; // Immediately cancel retry
     clearTimeout(retryTimeoutId.current); // Clear the scheduled retry
     setRetrying(false);
   }
