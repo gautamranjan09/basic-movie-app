@@ -12,36 +12,43 @@ function App() {
   const retryTimeoutId = useRef(null);
   const cancelRetryRef = useRef(false); // Ref to track cancel state
 
-  const fetchMoviesHandler= useCallback( async ()=> {
+  const fetchMoviesHandler = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     setRetrying(false);
     cancelRetryRef.current = false; // Resetting cancelRetry via ref
 
     try {
-      const response = await fetch("https://swapi.dev/api/films/");
+      const response = await fetch(
+        "https://basic-movie-app-default-rtdb.firebaseio.com/movies.json"
+      );
       if (!response.ok) {
         throw new Error("Something went wrong....");
       }
       const data = await response.json();
-      
-      const transformedMovies = data.results.map((movieData) => ({
-        id: movieData.episode_id,
-        title: movieData.title,
-        openingText: movieData.opening_crawl,
-        releaseDate: movieData.release_date,
-      }));
-      setMovies(transformedMovies);
+
+      const loadedMovies = [];
+
+      for (const key in data) {
+        loadedMovies.push({
+          id: key,
+          title: data[key].title,
+          releaseDate: data[key].releaseDate,
+          openingText: data[key].openingText,
+        });
+      }
+
+      setMovies(loadedMovies);
     } catch (error) {
       setError(error.message);
       retryFetchMovies();
     }
     setIsLoading(false);
-  },[]);
+  }, []);
 
-  useEffect(()=>{
+  useEffect(() => {
     fetchMoviesHandler();
-  },[fetchMoviesHandler])
+  }, [fetchMoviesHandler]);
 
   function retryFetchMovies() {
     if (cancelRetryRef.current) return; // Avoid scheduling retry if canceled
@@ -60,15 +67,43 @@ function App() {
     setRetrying(false);
   }
 
-  function fromSubmitHandler(data){
-    setMovies((pervData)=>{
-      return [...pervData, data];
-    })
+  async function fromSubmitHandler(movie) {
+    // setMovies((pervData)=>{
+    //   return [...pervData, data];
+    // })
+    const response = await fetch(
+      "https://basic-movie-app-default-rtdb.firebaseio.com/movies.json",
+      {
+        method: "POST",
+        body: JSON.stringify(movie),
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+    const data = await response.json();
+  }
+
+  async function deleteMovieHandler(movieId) {
+    const response = await fetch(
+      `https://basic-movie-app-default-rtdb.firebaseio.com/movies/${movieId}.json`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (response.ok) {
+      // Filter out the deleted movie from the state to update the UI
+      setMovies((prevMovies) =>
+        prevMovies.filter((movie) => movie.id !== movieId)
+      );
+    } else {
+      setError("Failed to delete the movie.");
+    }
   }
 
   let content = <p>Found no movies.</p>;
 
-  if (movies.length > 0) content = <MoviesList movies={movies} />;
+  if (movies.length > 0)
+    content = <MoviesList movies={movies} onDeleteMovie={deleteMovieHandler} />;
   if (error)
     content = (
       <div>
@@ -85,7 +120,7 @@ function App() {
 
   return (
     <React.Fragment>
-      <Form onFromSubmit={fromSubmitHandler}/>
+      <Form onFromSubmit={fromSubmitHandler} />
       <section>
         <button onClick={fetchMoviesHandler}>Fetch Movies</button>
       </section>

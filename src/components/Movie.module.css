@@ -18,3 +18,28 @@
   margin: 0;
   font-size: 1rem;
 }
+
+.movie button {
+  font: inherit;
+  cursor: pointer;
+  background: #14e414;
+  border: 1px solid #14e414;
+  color: white;
+  padding: 0.75rem 2rem;
+  border-radius: 20px;
+}
+
+.movie button:focus {
+  outline: none;
+}
+
+.movie button:hover,
+ .movie button:active {
+  background-color: #0db423;
+  border-color: #0db423;
+  
+}
+.movie button:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
