@@ -26,4 +26,9 @@ button:hover,
 button:active {
   background-color: #460897;
   border-color: #460897;
+  
+}
+button:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
